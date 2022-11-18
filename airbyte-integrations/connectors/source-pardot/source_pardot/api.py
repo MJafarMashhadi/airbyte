@@ -3,6 +3,7 @@
 #
 
 import requests
+import datetime
 from airbyte_cdk.sources.streams.http.rate_limiting import default_backoff_handler
 
 
@@ -24,6 +25,7 @@ class Pardot:
         self.client_id = client_id
         self.client_secret = client_secret
         self.access_token = None
+        self.token_issued_at = None
         self.instance_url = None
         self.session = requests.Session()
         self.is_sandbox = is_sandbox is True or (isinstance(is_sandbox, str) and is_sandbox.lower() == "true")
@@ -44,6 +46,10 @@ class Pardot:
         auth = resp.json()
         self.access_token = auth["access_token"]
         self.instance_url = auth["instance_url"]
+        self.token_issued_at = datetime.datetime.fromtimestamp(float(auth["issued_at"]) / 1000)
+
+    def logout(self):
+        self.access_token = self.instance_url = self.token_issued_at = None
 
     @default_backoff_handler(max_tries=5, factor=15)
     def _make_request(
